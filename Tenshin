@@ -1,4 +1,4 @@
--- Tenshin Hub - Ultra Fast & Minimalist GUI
+-- Tenshin Hub - Ultra Fast & Minimalist GUI (V2)
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -6,7 +6,7 @@ local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Hapus instance lama jika pernah di-run sebelumnya
+-- Clean previous instance
 if game:GetService("CoreGui"):FindFirstChild("TenshinHubMinimal") then
     game:GetService("CoreGui").TenshinHubMinimal:Destroy()
 end
@@ -15,6 +15,7 @@ end
 local walkSpeed = 16
 local flySpeed = 50
 local isFlying = false
+local isInvis = false
 
 local bodyVelocity = nil
 local bodyGyro = nil
@@ -25,14 +26,13 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "TenshinHubMinimal"
 ScreenGui.ResetOnSpawn = false
 
--- Fallback parent (CoreGui atau PlayerGui)
 local parentUI = game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 ScreenGui.Parent = parentUI
 
 -- Main Window
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 240, 0, 130)
+MainFrame.Size = UDim2.new(0, 250, 0, 165)
 MainFrame.Position = UDim2.new(0.4, 0, 0.4, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
 MainFrame.BorderSizePixel = 0
@@ -61,12 +61,12 @@ Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = MainFrame
 
--- Top Right Window Buttons (- and X)
+-- Top Right Buttons (Tombol X Menggunakan Huruf Standar)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 24, 0, 24)
 CloseBtn.Position = UDim2.new(1, -30, 0, 8)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(230, 60, 60)
-CloseBtn.Text = "✕"
+CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.TextSize = 11
 CloseBtn.Font = Enum.Font.GothamBold
@@ -80,9 +80,9 @@ local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 24, 0, 24)
 MinBtn.Position = UDim2.new(1, -58, 0, 8)
 MinBtn.BackgroundColor3 = Color3.fromRGB(35, 40, 52)
-MinBtn.Text = "─"
+MinBtn.Text = "-"
 MinBtn.TextColor3 = Color3.fromRGB(80, 160, 240)
-MinBtn.TextSize = 11
+MinBtn.TextSize = 13
 MinBtn.Font = Enum.Font.GothamBold
 MinBtn.Parent = MainFrame
 
@@ -98,7 +98,7 @@ Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
 
 ---------------------------------------------------------
--- WALK SPEED CONTROL ROW
+-- SPEED ROW
 ---------------------------------------------------------
 local wsLabel = Instance.new("TextLabel")
 wsLabel.Size = UDim2.new(0, 45, 0, 32)
@@ -113,7 +113,7 @@ wsLabel.Parent = Container
 
 local wsInput = Instance.new("TextBox")
 wsInput.Size = UDim2.new(0, 75, 0, 32)
-wsInput.Position = UDim2.new(0, 50, 0, 0)
+wsInput.Position = UDim2.new(0, 55, 0, 0)
 wsInput.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
 wsInput.Text = tostring(walkSpeed)
 wsInput.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -127,7 +127,7 @@ wsInputCorner.Parent = wsInput
 
 local wsMinus = Instance.new("TextButton")
 wsMinus.Size = UDim2.new(0, 32, 0, 32)
-wsMinus.Position = UDim2.new(0, 133, 0, 0)
+wsMinus.Position = UDim2.new(0, 140, 0, 0)
 wsMinus.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
 wsMinus.Text = "-"
 wsMinus.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -141,7 +141,7 @@ wsMinusCorner.Parent = wsMinus
 
 local wsPlus = Instance.new("TextButton")
 wsPlus.Size = UDim2.new(0, 32, 0, 32)
-wsPlus.Position = UDim2.new(0, 172, 0, 0)
+wsPlus.Position = UDim2.new(0, 180, 0, 0)
 wsPlus.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
 wsPlus.Text = "+"
 wsPlus.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -154,11 +154,11 @@ wsPlusCorner.CornerRadius = UDim.new(0, 16)
 wsPlusCorner.Parent = wsPlus
 
 ---------------------------------------------------------
--- FLY CONTROL ROW
+-- FLY ROW
 ---------------------------------------------------------
 local flyToggleBtn = Instance.new("TextButton")
 flyToggleBtn.Size = UDim2.new(0, 85, 0, 32)
-flyToggleBtn.Position = UDim2.new(0, 0, 0, 42)
+flyToggleBtn.Position = UDim2.new(0, 0, 0, 40)
 flyToggleBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
 flyToggleBtn.Text = "FLY"
 flyToggleBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
@@ -172,7 +172,7 @@ flyToggleCorner.Parent = flyToggleBtn
 
 local flyInput = Instance.new("TextBox")
 flyInput.Size = UDim2.new(0, 40, 0, 32)
-flyInput.Position = UDim2.new(0, 91, 0, 42)
+flyInput.Position = UDim2.new(0, 93, 0, 40)
 flyInput.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
 flyInput.Text = tostring(flySpeed)
 flyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -186,7 +186,7 @@ flyInputCorner.Parent = flyInput
 
 local flyMinus = Instance.new("TextButton")
 flyMinus.Size = UDim2.new(0, 32, 0, 32)
-flyMinus.Position = UDim2.new(0, 138, 0, 42)
+flyMinus.Position = UDim2.new(0, 140, 0, 40)
 flyMinus.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
 flyMinus.Text = "-"
 flyMinus.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -200,7 +200,7 @@ flyMinusCorner.Parent = flyMinus
 
 local flyPlus = Instance.new("TextButton")
 flyPlus.Size = UDim2.new(0, 32, 0, 32)
-flyPlus.Position = UDim2.new(0, 177, 0, 42)
+flyPlus.Position = UDim2.new(0, 180, 0, 40)
 flyPlus.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
 flyPlus.Text = "+"
 flyPlus.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -213,14 +213,31 @@ flyPlusCorner.CornerRadius = UDim.new(0, 16)
 flyPlusCorner.Parent = flyPlus
 
 ---------------------------------------------------------
--- SCRIPT LOGIC & HANDLERS
+-- INVISIBILITY ROW
+---------------------------------------------------------
+local invisToggleBtn = Instance.new("TextButton")
+invisToggleBtn.Size = UDim2.new(1, -18, 0, 30)
+invisToggleBtn.Position = UDim2.new(0, 0, 0, 80)
+invisToggleBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+invisToggleBtn.Text = "INVISIBLE : OFF"
+invisToggleBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+invisToggleBtn.TextSize = 11
+invisToggleBtn.Font = Enum.Font.GothamBold
+invisToggleBtn.Parent = Container
+
+local invisToggleCorner = Instance.new("UICorner")
+invisToggleCorner.CornerRadius = UDim.new(0, 8)
+invisToggleCorner.Parent = invisToggleBtn
+
+---------------------------------------------------------
+-- SCRIPT LOGIC
 ---------------------------------------------------------
 local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
 
 local function applyWalkSpeed(val)
-    walkSpeed = math.clamp(val, 0, 1000)
+    walkSpeed = math.clamp(val, 0, 2000)
     wsInput.Text = tostring(walkSpeed)
     local char = LocalPlayer.Character
     if char then
@@ -242,12 +259,12 @@ local function toggleFly(state)
         flyToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 
         bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        bodyVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
         bodyVelocity.Velocity = Vector3.new(0, 0, 0)
         bodyVelocity.Parent = hrp
 
         bodyGyro = Instance.new("BodyGyro")
-        bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+        bodyGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
         bodyGyro.CFrame = hrp.CFrame
         bodyGyro.Parent = hrp
 
@@ -271,7 +288,8 @@ local function toggleFly(state)
 
             if moveDir.Magnitude > 0 then moveDir = moveDir.Unit end
 
-            bodyVelocity.Velocity = moveDir * flySpeed
+            -- Multiplier 2.5x agar kecepatan terbang jauh lebih responsif
+            bodyVelocity.Velocity = moveDir * (flySpeed * 2.5)
             bodyGyro.CFrame = camera.CFrame
         end)
     else
@@ -285,9 +303,43 @@ local function toggleFly(state)
     end
 end
 
--- Button Listeners
-wsMinus.MouseButton1Click:Connect(function() applyWalkSpeed(walkSpeed - 5) end)
-wsPlus.MouseButton1Click:Connect(function() applyWalkSpeed(walkSpeed + 5) end)
+local function toggleInvis(state)
+    isInvis = state
+    local char = getCharacter()
+    if not char then return end
+
+    if isInvis then
+        invisToggleBtn.Text = "INVISIBLE : ON"
+        invisToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 110, 240)
+        invisToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then
+                part.Transparency = 1
+            end
+        end
+    else
+        invisToggleBtn.Text = "INVISIBLE : OFF"
+        invisToggleBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+        invisToggleBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                if part.Name == "HumanoidRootPart" then
+                    part.Transparency = 1
+                else
+                    part.Transparency = 0
+                end
+            elseif part:IsA("Decal") then
+                part.Transparency = 0
+            end
+        end
+    end
+end
+
+-- Button Handlers (+15 / -15 per klik)
+wsMinus.MouseButton1Click:Connect(function() applyWalkSpeed(walkSpeed - 15) end)
+wsPlus.MouseButton1Click:Connect(function() applyWalkSpeed(walkSpeed + 15) end)
 
 wsInput.FocusLost:Connect(function()
     local val = tonumber(wsInput.Text)
@@ -295,12 +347,12 @@ wsInput.FocusLost:Connect(function()
 end)
 
 flyMinus.MouseButton1Click:Connect(function()
-    flySpeed = math.max(5, flySpeed - 10)
+    flySpeed = math.max(5, flySpeed - 15)
     flyInput.Text = tostring(flySpeed)
 end)
 
 flyPlus.MouseButton1Click:Connect(function()
-    flySpeed = flySpeed + 10
+    flySpeed = flySpeed + 15
     flyInput.Text = tostring(flySpeed)
 end)
 
@@ -309,26 +361,28 @@ flyInput.FocusLost:Connect(function()
     if val then flySpeed = math.max(0, val) else flyInput.Text = tostring(flySpeed) end
 end)
 
-flyToggleBtn.MouseButton1Click:Connect(function()
-    toggleFly(not isFlying)
-end)
+flyToggleBtn.MouseButton1Click:Connect(function() toggleFly(not isFlying) end)
+invisToggleBtn.MouseButton1Click:Connect(function() toggleInvis(not isInvis) end)
 
 -- Minimize & Close
 local isMinimized = false
 MinBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     Container.Visible = not isMinimized
-    MainFrame.Size = isMinimized and UDim2.new(0, 240, 0, 38) or UDim2.new(0, 240, 0, 130)
+    MainFrame.Size = isMinimized and UDim2.new(0, 250, 0, 38) or UDim2.new(0, 250, 0, 165)
 end)
 
 CloseBtn.MouseButton1Click:Connect(function()
     if isFlying then toggleFly(false) end
+    if isInvis then toggleInvis(false) end
     ScreenGui:Destroy()
 end)
 
 -- Respawn Handler
 LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
     local humanoid = char:WaitForChild("Humanoid")
     humanoid.WalkSpeed = walkSpeed
     if isFlying then toggleFly(false) end
+    if isInvis then toggleInvis(true) end
 end)
