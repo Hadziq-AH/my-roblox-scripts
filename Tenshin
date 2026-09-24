@@ -1,28 +1,23 @@
 -- Rayfield Library Loader
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Create Rayfield Window
+-- Minimalist Window Configuration
 local Window = Rayfield:CreateWindow({
-    Name = "🔰 Tenshin Hub 🔰",
-    LoadingTitle = "Tenshin HUB",
-    LoadingSubtitle = "by tenshin",
-    Theme = "Default", -- Options: Default, Amber, Ocean, DarkBlue, Bloom, Serenity
+    Name = "⚡ Tenshin Hub",
+    LoadingTitle = "Tenshin Hub",
+    LoadingSubtitle = "Minimalist",
+    Theme = "Bloom", -- Tema bersih & simpel (Pilihan lain: DarkBlue, Serenity)
 
-    DisableRayfieldPrompts = false,
-    DisableBuildWarnings = false,
+    DisableRayfieldPrompts = true, -- Menonaktifkan prompt bawaan agar loading smooth
+    DisableBuildWarnings = true,
 
     ConfigurationSaving = {
         Enabled = true,
         FolderName = "TenshinHub",
-        FileName = "MovementConfig"
+        FileName = "Config"
     },
 
-    Discord = {
-        Enabled = false,
-        Invite = "",
-        RememberJoins = true
-    },
-
+    Discord = { Enabled = false },
     KeySystem = false
 })
 
@@ -47,12 +42,15 @@ local function getCharacter()
 end
 
 local function setWalkSpeed(speed)
-    walkSpeed = speed
-    local char = LocalPlayer.Character
-    if char then
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.WalkSpeed = walkSpeed
+    local num = tonumber(speed)
+    if num then
+        walkSpeed = math.clamp(num, 0, 1000)
+        local char = LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = walkSpeed
+            end
         end
     end
 end
@@ -87,28 +85,14 @@ local function toggleFly(state)
             local camera = workspace.CurrentCamera
             local moveDir = Vector3.new()
 
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                moveDir = moveDir + camera.CFrame.LookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                moveDir = moveDir - camera.CFrame.LookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                moveDir = moveDir - camera.CFrame.RightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                moveDir = moveDir + camera.CFrame.RightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                moveDir = moveDir + Vector3.new(0, 1, 0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                moveDir = moveDir - Vector3.new(0, 1, 0)
-            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
 
-            if moveDir.Magnitude > 0 then
-                moveDir = moveDir.Unit
-            end
+            if moveDir.Magnitude > 0 then moveDir = moveDir.Unit end
 
             bodyVelocity.Velocity = moveDir * flySpeed
             bodyGyro.CFrame = camera.CFrame
@@ -124,25 +108,33 @@ local function toggleFly(state)
     end
 end
 
--- Re-apply WalkSpeed on Respawn
+-- Re-apply on Respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
     local humanoid = char:WaitForChild("Humanoid")
     humanoid.WalkSpeed = walkSpeed
-    if isFlying then
-        toggleFly(false)
-    end
+    if isFlying then toggleFly(false) end
 end)
 
--- UI Tabs & Elements
-local MovementTab = Window:CreateTab("Movement", 4483362458)
+-- Tab Utama
+local MainTab = Window:CreateTab("Movement", 4483362458)
 
-MovementTab:CreateSection("WalkSpeed Settings")
+-- Section WalkSpeed
+MainTab:CreateSection("Walk Speed")
 
-local SpeedSlider = MovementTab:CreateSlider({
-    Name = "WalkSpeed",
+MainTab:CreateInput({
+    Name = "Ketik Speed Manual",
+    PlaceholderText = "Misal: 50",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        setWalkSpeed(Text)
+    end,
+})
+
+MainTab:CreateSlider({
+    Name = "WalkSpeed Slider",
     Range = {16, 500},
     Increment = 1,
-    Suffix = " Speed",
+    Suffix = " Spd",
     CurrentValue = 16,
     Flag = "WalkSpeedSlider",
     Callback = function(Value)
@@ -150,16 +142,10 @@ local SpeedSlider = MovementTab:CreateSlider({
     end,
 })
 
-MovementTab:CreateButton({
-    Name = "Reset WalkSpeed to Normal",
-    Callback = function()
-        SpeedSlider:Set(16)
-    end,
-})
+-- Section Fly
+MainTab:CreateSection("Fly Settings")
 
-MovementTab:CreateSection("Fly Settings")
-
-local FlyToggle = MovementTab:CreateToggle({
+local FlyToggle = MainTab:CreateToggle({
     Name = "Enable Fly",
     CurrentValue = false,
     Flag = "FlyToggle",
@@ -168,7 +154,7 @@ local FlyToggle = MovementTab:CreateToggle({
     end,
 })
 
-MovementTab:CreateKeybind({
+MainTab:CreateKeybind({
     Name = "Fly Keybind Toggle",
     CurrentKeybind = "F",
     HoldToInteract = false,
@@ -178,11 +164,21 @@ MovementTab:CreateKeybind({
     end,
 })
 
-MovementTab:CreateSlider({
-    Name = "Fly Speed",
+MainTab:CreateInput({
+    Name = "Ketik Fly Speed Manual",
+    PlaceholderText = "Misal: 100",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        local num = tonumber(Text)
+        if num then flySpeed = num end
+    end,
+})
+
+MainTab:CreateSlider({
+    Name = "Fly Speed Slider",
     Range = {10, 500},
     Increment = 5,
-    Suffix = " Speed",
+    Suffix = " Spd",
     CurrentValue = 50,
     Flag = "FlySpeedSlider",
     Callback = function(Value)
@@ -190,5 +186,5 @@ MovementTab:CreateSlider({
     end,
 })
 
--- Load Saved Settings
+-- Load Config
 Rayfield:LoadConfiguration()
