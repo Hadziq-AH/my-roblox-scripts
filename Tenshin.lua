@@ -1,0 +1,20 @@
+local window = Rayfield:CreateWindow({
+    name = "🔰 Tenshin Hub 🔰",
+    LoadingTitle = "Tenshin HUB",
+    Loadingsubtitle = "by tenshin",
+    sidebarLayout = true,
+        
+})
+
+local window = Rayfield:CreateWindow({
+    name = "🔰 Tenshin Hub 🔰",
+    configuration = {
+        autoSave = true,      -- save on change
+        autoLoad = true,      -- load on first open
+        fileName = "MyConfig",
+        customFolder = "MyGame", -- optional
+    },
+})
+
+local tab = window:CreateTab("Home")
+tab:CreateSection("Main")
