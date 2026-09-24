@@ -1,4 +1,4 @@
--- Tenshin Hub - ESP Update (V9)
+-- Tenshin Hub -
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
