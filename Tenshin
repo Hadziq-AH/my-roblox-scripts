@@ -1,4 +1,4 @@
--- Tenshin Hub - Ultra Fast & Minimalist GUI (V2)
+-- Tenshin Hub - Minimalist & FE Optimized GUI (V3)
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -13,13 +13,14 @@ end
 
 -- Variables
 local walkSpeed = 16
-local flySpeed = 50
+local flySpeed = 30
 local isFlying = false
 local isInvis = false
 
 local bodyVelocity = nil
 local bodyGyro = nil
 local flyConnection = nil
+local speedConnection = nil
 
 -- UI Root
 local ScreenGui = Instance.new("ScreenGui")
@@ -61,14 +62,14 @@ Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = MainFrame
 
--- Top Right Buttons (Tombol X Menggunakan Huruf Standar)
+-- Top Right Buttons
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 24, 0, 24)
 CloseBtn.Position = UDim2.new(1, -30, 0, 8)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(230, 60, 60)
 CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.TextSize = 11
+CloseBtn.TextSize = 12
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Parent = MainFrame
 
@@ -82,7 +83,7 @@ MinBtn.Position = UDim2.new(1, -58, 0, 8)
 MinBtn.BackgroundColor3 = Color3.fromRGB(35, 40, 52)
 MinBtn.Text = "-"
 MinBtn.TextColor3 = Color3.fromRGB(80, 160, 240)
-MinBtn.TextSize = 13
+MinBtn.TextSize = 14
 MinBtn.Font = Enum.Font.GothamBold
 MinBtn.Parent = MainFrame
 
@@ -185,7 +186,7 @@ flyInputCorner.CornerRadius = UDim.new(0, 8)
 flyInputCorner.Parent = flyInput
 
 local flyMinus = Instance.new("TextButton")
-flyMinus.Size = UDim2.new(0, 32, 0, 32)
+flyMinus.Size = UDim2.new(0, 32, 0, 40)
 flyMinus.Position = UDim2.new(0, 140, 0, 40)
 flyMinus.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
 flyMinus.Text = "-"
@@ -219,7 +220,7 @@ local invisToggleBtn = Instance.new("TextButton")
 invisToggleBtn.Size = UDim2.new(1, -18, 0, 30)
 invisToggleBtn.Position = UDim2.new(0, 0, 0, 80)
 invisToggleBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
-invisToggleBtn.Text = "INVISIBLE : OFF"
+invisToggleBtn.Text = "FE INVISIBLE : OFF"
 invisToggleBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
 invisToggleBtn.TextSize = 11
 invisToggleBtn.Font = Enum.Font.GothamBold
@@ -236,16 +237,23 @@ local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
 
+-- Fast Walkspeed Enforcer
 local function applyWalkSpeed(val)
-    walkSpeed = math.clamp(val, 0, 2000)
+    walkSpeed = math.clamp(val, 0, 1000)
     wsInput.Text = tostring(walkSpeed)
+end
+
+speedConnection = RunService.Stepped:Connect(function()
     local char = LocalPlayer.Character
     if char then
         local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.WalkSpeed = walkSpeed end
+        if humanoid and humanoid.WalkSpeed ~= walkSpeed then
+            humanoid.WalkSpeed = walkSpeed
+        end
     end
-end
+end)
 
+-- Fly System dengan Ultra-Responsive Scaling
 local function toggleFly(state)
     isFlying = state
     local char = getCharacter()
@@ -259,12 +267,12 @@ local function toggleFly(state)
         flyToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 
         bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+        bodyVelocity.MaxForce = Vector3.new(1e7, 1e7, 1e7)
         bodyVelocity.Velocity = Vector3.new(0, 0, 0)
         bodyVelocity.Parent = hrp
 
         bodyGyro = Instance.new("BodyGyro")
-        bodyGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+        bodyGyro.MaxTorque = Vector3.new(1e7, 1e7, 1e7)
         bodyGyro.CFrame = hrp.CFrame
         bodyGyro.Parent = hrp
 
@@ -288,8 +296,8 @@ local function toggleFly(state)
 
             if moveDir.Magnitude > 0 then moveDir = moveDir.Unit end
 
-            -- Multiplier 2.5x agar kecepatan terbang jauh lebih responsif
-            bodyVelocity.Velocity = moveDir * (flySpeed * 2.5)
+            -- Multiplier tinggi (4x) agar angka kecil sudah terasa sangat kencang
+            bodyVelocity.Velocity = moveDir * (flySpeed * 4)
             bodyGyro.CFrame = camera.CFrame
         end)
     else
@@ -303,43 +311,48 @@ local function toggleFly(state)
     end
 end
 
+-- FE Invisible (Server Desync Method)
+local cloneChar = nil
 local function toggleInvis(state)
     isInvis = state
     local char = getCharacter()
-    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+
+    if not char or not hrp then return end
 
     if isInvis then
-        invisToggleBtn.Text = "INVISIBLE : ON"
+        invisToggleBtn.Text = "FE INVISIBLE : ON"
         invisToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 110, 240)
         invisToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 
+        -- FE Invisibility Trick: Break server replication via Local CFrame Offset & RootJoint desync
+        local lowerTorso = char:FindFirstChild("LowerTorso") or char:FindFirstChild("Torso")
+        if lowerTorso then
+            local rootJoint = lowerTorso:FindFirstChild("RootRigJoint") or hrp:FindFirstChild("RootJoint")
+            if rootJoint then
+                rootJoint:Destroy() -- Melepas koneksi fisik ke server agar tubuh menjadi invisible bagi player lain
+            end
+        end
+
         for _, part in ipairs(char:GetDescendants()) do
             if part:IsA("BasePart") or part:IsA("Decal") then
-                part.Transparency = 1
+                part.Transparency = 0.5 -- Efek transparan pada layar kamu sendiri sebagai penanda
             end
         end
     else
-        invisToggleBtn.Text = "INVISIBLE : OFF"
+        invisToggleBtn.Text = "FE INVISIBLE : OFF"
         invisToggleBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
         invisToggleBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
 
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                if part.Name == "HumanoidRootPart" then
-                    part.Transparency = 1
-                else
-                    part.Transparency = 0
-                end
-            elseif part:IsA("Decal") then
-                part.Transparency = 0
-            end
-        end
+        -- Respawn/Reset lokal untuk mengembalikan karakter ke kondisi normal
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Dead) end
     end
 end
 
--- Button Handlers (+15 / -15 per klik)
-wsMinus.MouseButton1Click:Connect(function() applyWalkSpeed(walkSpeed - 15) end)
-wsPlus.MouseButton1Click:Connect(function() applyWalkSpeed(walkSpeed + 15) end)
+-- Button Listeners (+10 / -10 per klik)
+wsMinus.MouseButton1Click:Connect(function() applyWalkSpeed(walkSpeed - 10) end)
+wsPlus.MouseButton1Click:Connect(function() applyWalkSpeed(walkSpeed + 10) end)
 
 wsInput.FocusLost:Connect(function()
     local val = tonumber(wsInput.Text)
@@ -347,12 +360,12 @@ wsInput.FocusLost:Connect(function()
 end)
 
 flyMinus.MouseButton1Click:Connect(function()
-    flySpeed = math.max(5, flySpeed - 15)
+    flySpeed = math.max(5, flySpeed - 10)
     flyInput.Text = tostring(flySpeed)
 end)
 
 flyPlus.MouseButton1Click:Connect(function()
-    flySpeed = flySpeed + 15
+    flySpeed = flySpeed + 10
     flyInput.Text = tostring(flySpeed)
 end)
 
@@ -373,16 +386,14 @@ MinBtn.MouseButton1Click:Connect(function()
 end)
 
 CloseBtn.MouseButton1Click:Connect(function()
+    if speedConnection then speedConnection:Disconnect() end
     if isFlying then toggleFly(false) end
-    if isInvis then toggleInvis(false) end
     ScreenGui:Destroy()
 end)
 
 -- Respawn Handler
 LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(0.5)
-    local humanoid = char:WaitForChild("Humanoid")
-    humanoid.WalkSpeed = walkSpeed
+    applyWalkSpeed(walkSpeed)
     if isFlying then toggleFly(false) end
-    if isInvis then toggleInvis(true) end
 end)
