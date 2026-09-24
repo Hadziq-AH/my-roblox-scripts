@@ -1,33 +1,17 @@
--- Rayfield Library Loader
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- Tenshin Hub - Ultra Fast & Minimalist GUI
 
--- Minimalist Window Configuration
-local Window = Rayfield:CreateWindow({
-    Name = "⚡ Tenshin Hub",
-    LoadingTitle = "Tenshin Hub",
-    LoadingSubtitle = "Minimalist",
-    Theme = "Bloom", -- Tema bersih & simpel (Pilihan lain: DarkBlue, Serenity)
-
-    DisableRayfieldPrompts = true, -- Menonaktifkan prompt bawaan agar loading smooth
-    DisableBuildWarnings = true,
-
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "TenshinHub",
-        FileName = "Config"
-    },
-
-    Discord = { Enabled = false },
-    KeySystem = false
-})
-
--- Services & Variables
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 
+-- Hapus instance lama jika pernah di-run sebelumnya
+if game:GetService("CoreGui"):FindFirstChild("TenshinHubMinimal") then
+    game:GetService("CoreGui").TenshinHubMinimal:Destroy()
+end
+
+-- Variables
 local walkSpeed = 16
 local flySpeed = 50
 local isFlying = false
@@ -36,22 +20,212 @@ local bodyVelocity = nil
 local bodyGyro = nil
 local flyConnection = nil
 
--- Helper Functions
+-- UI Root
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TenshinHubMinimal"
+ScreenGui.ResetOnSpawn = false
+
+-- Fallback parent (CoreGui atau PlayerGui)
+local parentUI = game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Parent = parentUI
+
+-- Main Window
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 240, 0, 130)
+MainFrame.Position = UDim2.new(0.4, 0, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(45, 110, 240)
+MainStroke.Thickness = 1.5
+MainStroke.Parent = MainFrame
+
+-- Header Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 130, 0, 32)
+Title.Position = UDim2.new(0, 12, 0, 4)
+Title.BackgroundTransparency = 1
+Title.Text = "TENSHIN HUB"
+Title.TextColor3 = Color3.fromRGB(60, 140, 255)
+Title.TextSize = 13
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+-- Top Right Window Buttons (- and X)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.Position = UDim2.new(1, -30, 0, 8)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(230, 60, 60)
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 11
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseBtn
+
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 24, 0, 24)
+MinBtn.Position = UDim2.new(1, -58, 0, 8)
+MinBtn.BackgroundColor3 = Color3.fromRGB(35, 40, 52)
+MinBtn.Text = "─"
+MinBtn.TextColor3 = Color3.fromRGB(80, 160, 240)
+MinBtn.TextSize = 11
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.Parent = MainFrame
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 6)
+MinCorner.Parent = MinBtn
+
+-- Container Content
+local Container = Instance.new("Frame")
+Container.Size = UDim2.new(1, -20, 1, -44)
+Container.Position = UDim2.new(0, 10, 0, 38)
+Container.BackgroundTransparency = 1
+Container.Parent = MainFrame
+
+---------------------------------------------------------
+-- WALK SPEED CONTROL ROW
+---------------------------------------------------------
+local wsLabel = Instance.new("TextLabel")
+wsLabel.Size = UDim2.new(0, 45, 0, 32)
+wsLabel.Position = UDim2.new(0, 0, 0, 0)
+wsLabel.BackgroundTransparency = 1
+wsLabel.Text = "SPEED"
+wsLabel.TextColor3 = Color3.fromRGB(180, 185, 200)
+wsLabel.TextSize = 11
+wsLabel.Font = Enum.Font.GothamBold
+wsLabel.TextXAlignment = Enum.TextXAlignment.Left
+wsLabel.Parent = Container
+
+local wsInput = Instance.new("TextBox")
+wsInput.Size = UDim2.new(0, 75, 0, 32)
+wsInput.Position = UDim2.new(0, 50, 0, 0)
+wsInput.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+wsInput.Text = tostring(walkSpeed)
+wsInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+wsInput.TextSize = 13
+wsInput.Font = Enum.Font.GothamBold
+wsInput.Parent = Container
+
+local wsInputCorner = Instance.new("UICorner")
+wsInputCorner.CornerRadius = UDim.new(0, 8)
+wsInputCorner.Parent = wsInput
+
+local wsMinus = Instance.new("TextButton")
+wsMinus.Size = UDim2.new(0, 32, 0, 32)
+wsMinus.Position = UDim2.new(0, 133, 0, 0)
+wsMinus.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+wsMinus.Text = "-"
+wsMinus.TextColor3 = Color3.fromRGB(255, 255, 255)
+wsMinus.TextSize = 16
+wsMinus.Font = Enum.Font.GothamBold
+wsMinus.Parent = Container
+
+local wsMinusCorner = Instance.new("UICorner")
+wsMinusCorner.CornerRadius = UDim.new(0, 16)
+wsMinusCorner.Parent = wsMinus
+
+local wsPlus = Instance.new("TextButton")
+wsPlus.Size = UDim2.new(0, 32, 0, 32)
+wsPlus.Position = UDim2.new(0, 172, 0, 0)
+wsPlus.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+wsPlus.Text = "+"
+wsPlus.TextColor3 = Color3.fromRGB(255, 255, 255)
+wsPlus.TextSize = 16
+wsPlus.Font = Enum.Font.GothamBold
+wsPlus.Parent = Container
+
+local wsPlusCorner = Instance.new("UICorner")
+wsPlusCorner.CornerRadius = UDim.new(0, 16)
+wsPlusCorner.Parent = wsPlus
+
+---------------------------------------------------------
+-- FLY CONTROL ROW
+---------------------------------------------------------
+local flyToggleBtn = Instance.new("TextButton")
+flyToggleBtn.Size = UDim2.new(0, 85, 0, 32)
+flyToggleBtn.Position = UDim2.new(0, 0, 0, 42)
+flyToggleBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+flyToggleBtn.Text = "FLY"
+flyToggleBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+flyToggleBtn.TextSize = 11
+flyToggleBtn.Font = Enum.Font.GothamBold
+flyToggleBtn.Parent = Container
+
+local flyToggleCorner = Instance.new("UICorner")
+flyToggleCorner.CornerRadius = UDim.new(0, 8)
+flyToggleCorner.Parent = flyToggleBtn
+
+local flyInput = Instance.new("TextBox")
+flyInput.Size = UDim2.new(0, 40, 0, 32)
+flyInput.Position = UDim2.new(0, 91, 0, 42)
+flyInput.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+flyInput.Text = tostring(flySpeed)
+flyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyInput.TextSize = 13
+flyInput.Font = Enum.Font.GothamBold
+flyInput.Parent = Container
+
+local flyInputCorner = Instance.new("UICorner")
+flyInputCorner.CornerRadius = UDim.new(0, 8)
+flyInputCorner.Parent = flyInput
+
+local flyMinus = Instance.new("TextButton")
+flyMinus.Size = UDim2.new(0, 32, 0, 32)
+flyMinus.Position = UDim2.new(0, 138, 0, 42)
+flyMinus.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+flyMinus.Text = "-"
+flyMinus.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyMinus.TextSize = 16
+flyMinus.Font = Enum.Font.GothamBold
+flyMinus.Parent = Container
+
+local flyMinusCorner = Instance.new("UICorner")
+flyMinusCorner.CornerRadius = UDim.new(0, 16)
+flyMinusCorner.Parent = flyMinus
+
+local flyPlus = Instance.new("TextButton")
+flyPlus.Size = UDim2.new(0, 32, 0, 32)
+flyPlus.Position = UDim2.new(0, 177, 0, 42)
+flyPlus.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+flyPlus.Text = "+"
+flyPlus.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyPlus.TextSize = 16
+flyPlus.Font = Enum.Font.GothamBold
+flyPlus.Parent = Container
+
+local flyPlusCorner = Instance.new("UICorner")
+flyPlusCorner.CornerRadius = UDim.new(0, 16)
+flyPlusCorner.Parent = flyPlus
+
+---------------------------------------------------------
+-- SCRIPT LOGIC & HANDLERS
+---------------------------------------------------------
 local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
 
-local function setWalkSpeed(speed)
-    local num = tonumber(speed)
-    if num then
-        walkSpeed = math.clamp(num, 0, 1000)
-        local char = LocalPlayer.Character
-        if char then
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = walkSpeed
-            end
-        end
+local function applyWalkSpeed(val)
+    walkSpeed = math.clamp(val, 0, 1000)
+    wsInput.Text = tostring(walkSpeed)
+    local char = LocalPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid.WalkSpeed = walkSpeed end
     end
 end
 
@@ -64,6 +238,9 @@ local function toggleFly(state)
     if not hrp or not humanoid then return end
 
     if isFlying then
+        flyToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 110, 240)
+        flyToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
         bodyVelocity = Instance.new("BodyVelocity")
         bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
         bodyVelocity.Velocity = Vector3.new(0, 0, 0)
@@ -98,93 +275,60 @@ local function toggleFly(state)
             bodyGyro.CFrame = camera.CFrame
         end)
     else
-        if flyConnection then
-            flyConnection:Disconnect()
-            flyConnection = nil
-        end
+        flyToggleBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+        flyToggleBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+
+        if flyConnection then flyConnection:Disconnect() flyConnection = nil end
         if bodyVelocity then bodyVelocity:Destroy() end
         if bodyGyro then bodyGyro:Destroy() end
         humanoid.PlatformStand = false
     end
 end
 
--- Re-apply on Respawn
+-- Button Listeners
+wsMinus.MouseButton1Click:Connect(function() applyWalkSpeed(walkSpeed - 5) end)
+wsPlus.MouseButton1Click:Connect(function() applyWalkSpeed(walkSpeed + 5) end)
+
+wsInput.FocusLost:Connect(function()
+    local val = tonumber(wsInput.Text)
+    if val then applyWalkSpeed(val) else wsInput.Text = tostring(walkSpeed) end
+end)
+
+flyMinus.MouseButton1Click:Connect(function()
+    flySpeed = math.max(5, flySpeed - 10)
+    flyInput.Text = tostring(flySpeed)
+end)
+
+flyPlus.MouseButton1Click:Connect(function()
+    flySpeed = flySpeed + 10
+    flyInput.Text = tostring(flySpeed)
+end)
+
+flyInput.FocusLost:Connect(function()
+    local val = tonumber(flyInput.Text)
+    if val then flySpeed = math.max(0, val) else flyInput.Text = tostring(flySpeed) end
+end)
+
+flyToggleBtn.MouseButton1Click:Connect(function()
+    toggleFly(not isFlying)
+end)
+
+-- Minimize & Close
+local isMinimized = false
+MinBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    Container.Visible = not isMinimized
+    MainFrame.Size = isMinimized and UDim2.new(0, 240, 0, 38) or UDim2.new(0, 240, 0, 130)
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    if isFlying then toggleFly(false) end
+    ScreenGui:Destroy()
+end)
+
+-- Respawn Handler
 LocalPlayer.CharacterAdded:Connect(function(char)
     local humanoid = char:WaitForChild("Humanoid")
     humanoid.WalkSpeed = walkSpeed
     if isFlying then toggleFly(false) end
 end)
-
--- Tab Utama
-local MainTab = Window:CreateTab("Movement", 4483362458)
-
--- Section WalkSpeed
-MainTab:CreateSection("Walk Speed")
-
-MainTab:CreateInput({
-    Name = "Ketik Speed Manual",
-    PlaceholderText = "Misal: 50",
-    RemoveTextAfterFocusLost = false,
-    Callback = function(Text)
-        setWalkSpeed(Text)
-    end,
-})
-
-MainTab:CreateSlider({
-    Name = "WalkSpeed Slider",
-    Range = {16, 500},
-    Increment = 1,
-    Suffix = " Spd",
-    CurrentValue = 16,
-    Flag = "WalkSpeedSlider",
-    Callback = function(Value)
-        setWalkSpeed(Value)
-    end,
-})
-
--- Section Fly
-MainTab:CreateSection("Fly Settings")
-
-local FlyToggle = MainTab:CreateToggle({
-    Name = "Enable Fly",
-    CurrentValue = false,
-    Flag = "FlyToggle",
-    Callback = function(Value)
-        toggleFly(Value)
-    end,
-})
-
-MainTab:CreateKeybind({
-    Name = "Fly Keybind Toggle",
-    CurrentKeybind = "F",
-    HoldToInteract = false,
-    Flag = "FlyKeybind",
-    Callback = function()
-        FlyToggle:Set(not isFlying)
-    end,
-})
-
-MainTab:CreateInput({
-    Name = "Ketik Fly Speed Manual",
-    PlaceholderText = "Misal: 100",
-    RemoveTextAfterFocusLost = false,
-    Callback = function(Text)
-        local num = tonumber(Text)
-        if num then flySpeed = num end
-    end,
-})
-
-MainTab:CreateSlider({
-    Name = "Fly Speed Slider",
-    Range = {10, 500},
-    Increment = 5,
-    Suffix = " Spd",
-    CurrentValue = 50,
-    Flag = "FlySpeedSlider",
-    Callback = function(Value)
-        flySpeed = Value
-    end,
-})
-
--- Load Config
-Rayfield:LoadConfiguration()
