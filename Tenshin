@@ -1,3 +1,5 @@
+local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/Hadziq-AH/my-roblox-scripts/refs/heads/main/Tenshin"))()
+
 local window = Rayfield:CreateWindow({
     name = "🔰 Tenshin Hub 🔰",
     LoadingTitle = "Tenshin HUB",
