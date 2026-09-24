@@ -1,4 +1,4 @@
--- Tenshin Hub - Minimalist & FE Optimized GUI (V3)
+-- Tenshin Hub - ESP Update (V9)
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -15,12 +15,17 @@ end
 local walkSpeed = 16
 local flySpeed = 30
 local isFlying = false
-local isInvis = false
+local isSpectating = false
+local isESP = false
+
+local spectateTarget = nil
+local currentSpecIndex = 1
 
 local bodyVelocity = nil
 local bodyGyro = nil
 local flyConnection = nil
 local speedConnection = nil
+local espConnections = {}
 
 -- UI Root
 local ScreenGui = Instance.new("ScreenGui")
@@ -33,7 +38,7 @@ ScreenGui.Parent = parentUI
 -- Main Window
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 250, 0, 165)
+MainFrame.Size = UDim2.new(0, 250, 0, 240)
 MainFrame.Position = UDim2.new(0.4, 0, 0.4, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
 MainFrame.BorderSizePixel = 0
@@ -159,7 +164,7 @@ wsPlusCorner.Parent = wsPlus
 ---------------------------------------------------------
 local flyToggleBtn = Instance.new("TextButton")
 flyToggleBtn.Size = UDim2.new(0, 85, 0, 32)
-flyToggleBtn.Position = UDim2.new(0, 0, 0, 40)
+flyToggleBtn.Position = UDim2.new(0, 0, 0, 38)
 flyToggleBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
 flyToggleBtn.Text = "FLY"
 flyToggleBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
@@ -173,7 +178,7 @@ flyToggleCorner.Parent = flyToggleBtn
 
 local flyInput = Instance.new("TextBox")
 flyInput.Size = UDim2.new(0, 40, 0, 32)
-flyInput.Position = UDim2.new(0, 93, 0, 40)
+flyInput.Position = UDim2.new(0, 93, 0, 38)
 flyInput.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
 flyInput.Text = tostring(flySpeed)
 flyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -186,8 +191,8 @@ flyInputCorner.CornerRadius = UDim.new(0, 8)
 flyInputCorner.Parent = flyInput
 
 local flyMinus = Instance.new("TextButton")
-flyMinus.Size = UDim2.new(0, 32, 0, 40)
-flyMinus.Position = UDim2.new(0, 140, 0, 40)
+flyMinus.Size = UDim2.new(0, 32, 0, 32)
+flyMinus.Position = UDim2.new(0, 140, 0, 38)
 flyMinus.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
 flyMinus.Text = "-"
 flyMinus.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -201,7 +206,7 @@ flyMinusCorner.Parent = flyMinus
 
 local flyPlus = Instance.new("TextButton")
 flyPlus.Size = UDim2.new(0, 32, 0, 32)
-flyPlus.Position = UDim2.new(0, 180, 0, 40)
+flyPlus.Position = UDim2.new(0, 180, 0, 38)
 flyPlus.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
 flyPlus.Text = "+"
 flyPlus.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -214,21 +219,100 @@ flyPlusCorner.CornerRadius = UDim.new(0, 16)
 flyPlusCorner.Parent = flyPlus
 
 ---------------------------------------------------------
--- INVISIBILITY ROW
+-- PLAYER TARGET ROW & SPECTATE CONTROLS
 ---------------------------------------------------------
-local invisToggleBtn = Instance.new("TextButton")
-invisToggleBtn.Size = UDim2.new(1, -18, 0, 30)
-invisToggleBtn.Position = UDim2.new(0, 0, 0, 80)
-invisToggleBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
-invisToggleBtn.Text = "FE INVISIBLE : OFF"
-invisToggleBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
-invisToggleBtn.TextSize = 11
-invisToggleBtn.Font = Enum.Font.GothamBold
-invisToggleBtn.Parent = Container
+local targetInput = Instance.new("TextBox")
+targetInput.Size = UDim2.new(1, -18, 0, 30)
+targetInput.Position = UDim2.new(0, 0, 0, 76)
+targetInput.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+targetInput.PlaceholderText = "Target Username / Display"
+targetInput.PlaceholderColor3 = Color3.fromRGB(110, 115, 130)
+targetInput.Text = ""
+targetInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+targetInput.TextSize = 11
+targetInput.Font = Enum.Font.GothamBold
+targetInput.Parent = Container
 
-local invisToggleCorner = Instance.new("UICorner")
-invisToggleCorner.CornerRadius = UDim.new(0, 8)
-invisToggleCorner.Parent = invisToggleBtn
+local targetInputCorner = Instance.new("UICorner")
+targetInputCorner.CornerRadius = UDim.new(0, 8)
+targetInputCorner.Parent = targetInput
+
+-- Prev Player Button (<)
+local prevBtn = Instance.new("TextButton")
+prevBtn.Size = UDim2.new(0, 28, 0, 30)
+prevBtn.Position = UDim2.new(0, 0, 0, 112)
+prevBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+prevBtn.Text = "<"
+prevBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+prevBtn.TextSize = 14
+prevBtn.Font = Enum.Font.GothamBold
+prevBtn.Parent = Container
+
+local prevBtnCorner = Instance.new("UICorner")
+prevBtnCorner.CornerRadius = UDim.new(0, 8)
+prevBtnCorner.Parent = prevBtn
+
+-- Spectate Main Button
+local specBtn = Instance.new("TextButton")
+specBtn.Size = UDim2.new(0, 82, 0, 30)
+specBtn.Position = UDim2.new(0, 32, 0, 112)
+specBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+specBtn.Text = "SPECTATE"
+specBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+specBtn.TextSize = 10
+specBtn.Font = Enum.Font.GothamBold
+specBtn.Parent = Container
+
+local specBtnCorner = Instance.new("UICorner")
+specBtnCorner.CornerRadius = UDim.new(0, 8)
+specBtnCorner.Parent = specBtn
+
+-- Next Player Button (>)
+local nextBtn = Instance.new("TextButton")
+nextBtn.Size = UDim2.new(0, 28, 0, 30)
+nextBtn.Position = UDim2.new(0, 118, 0, 112)
+nextBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+nextBtn.Text = ">"
+nextBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+nextBtn.TextSize = 14
+nextBtn.Font = Enum.Font.GothamBold
+nextBtn.Parent = Container
+
+local nextBtnCorner = Instance.new("UICorner")
+nextBtnCorner.CornerRadius = UDim.new(0, 8)
+nextBtnCorner.Parent = nextBtn
+
+-- Teleport Button
+local tpBtn = Instance.new("TextButton")
+tpBtn.Size = UDim2.new(0, 80, 0, 30)
+tpBtn.Position = UDim2.new(0, 150, 0, 112)
+tpBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+tpBtn.Text = "TELEPORT"
+tpBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+tpBtn.TextSize = 10
+tpBtn.Font = Enum.Font.GothamBold
+tpBtn.Parent = Container
+
+local tpBtnCorner = Instance.new("UICorner")
+tpBtnCorner.CornerRadius = UDim.new(0, 8)
+tpBtnCorner.Parent = tpBtn
+
+---------------------------------------------------------
+-- ESP ROW
+---------------------------------------------------------
+local espBtn = Instance.new("TextButton")
+espBtn.Size = UDim2.new(1, -18, 0, 30)
+espBtn.Position = UDim2.new(0, 0, 0, 148)
+espBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+espBtn.Text = "ESP PLAYER : OFF"
+espBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+espBtn.TextSize = 11
+espBtn.Font = Enum.Font.GothamBold
+espBtn.Parent = Container
+
+local espBtnCorner = Instance.new("UICorner")
+espBtnCorner.CornerRadius = UDim.new(0, 8)
+espBtnCorner.Parent = espBtn
 
 ---------------------------------------------------------
 -- SCRIPT LOGIC
@@ -237,13 +321,38 @@ local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
 
--- Fast Walkspeed Enforcer
+-- Helper: Get list of all other players in map
+local function getOtherPlayers()
+    local list = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(list, p)
+        end
+    end
+    return list
+end
+
+-- Helper: Search Player by Username or DisplayName
+local function findPlayer(str)
+    str = string.lower(str)
+    if str == "" then return nil end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            if string.find(string.lower(p.Name), str) or string.find(string.lower(p.DisplayName), str) then
+                return p
+            end
+        end
+    end
+    return nil
+end
+
+-- Speed Enforcer
 local function applyWalkSpeed(val)
     walkSpeed = math.clamp(val, 0, 1000)
     wsInput.Text = tostring(walkSpeed)
 end
 
-speedConnection = RunService.Stepped:Connect(function()
+speedConnection = RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
     if char then
         local humanoid = char:FindFirstChildOfClass("Humanoid")
@@ -253,7 +362,7 @@ speedConnection = RunService.Stepped:Connect(function()
     end
 end)
 
--- Fly System dengan Ultra-Responsive Scaling
+-- Fly System
 local function toggleFly(state)
     isFlying = state
     local char = getCharacter()
@@ -296,7 +405,6 @@ local function toggleFly(state)
 
             if moveDir.Magnitude > 0 then moveDir = moveDir.Unit end
 
-            -- Multiplier tinggi (4x) agar angka kecil sudah terasa sangat kencang
             bodyVelocity.Velocity = moveDir * (flySpeed * 4)
             bodyGyro.CFrame = camera.CFrame
         end)
@@ -311,46 +419,172 @@ local function toggleFly(state)
     end
 end
 
--- FE Invisible (Server Desync Method)
-local cloneChar = nil
-local function toggleInvis(state)
-    isInvis = state
-    local char = getCharacter()
-    local hrp = char:FindFirstChild("HumanoidRootPart")
+-- Spectate Core Functions
+local function setSpectateTarget(target)
+    if target and target.Character and target.Character:FindFirstChildOfClass("Humanoid") then
+        isSpectating = true
+        spectateTarget = target
+        specBtn.Text = "UNSPECTATE"
+        specBtn.BackgroundColor3 = Color3.fromRGB(45, 110, 240)
+        specBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        targetInput.Text = target.Name
 
-    if not char or not hrp then return end
-
-    if isInvis then
-        invisToggleBtn.Text = "FE INVISIBLE : ON"
-        invisToggleBtn.BackgroundColor3 = Color3.fromRGB(45, 110, 240)
-        invisToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-        -- FE Invisibility Trick: Break server replication via Local CFrame Offset & RootJoint desync
-        local lowerTorso = char:FindFirstChild("LowerTorso") or char:FindFirstChild("Torso")
-        if lowerTorso then
-            local rootJoint = lowerTorso:FindFirstChild("RootRigJoint") or hrp:FindFirstChild("RootJoint")
-            if rootJoint then
-                rootJoint:Destroy() -- Melepas koneksi fisik ke server agar tubuh menjadi invisible bagi player lain
-            end
-        end
-
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") or part:IsA("Decal") then
-                part.Transparency = 0.5 -- Efek transparan pada layar kamu sendiri sebagai penanda
-            end
-        end
-    else
-        invisToggleBtn.Text = "FE INVISIBLE : OFF"
-        invisToggleBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
-        invisToggleBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
-
-        -- Respawn/Reset lokal untuk mengembalikan karakter ke kondisi normal
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then hum:ChangeState(Enum.HumanoidStateType.Dead) end
+        workspace.CurrentCamera.CameraSubject = target.Character:FindFirstChildOfClass("Humanoid")
     end
 end
 
--- Button Listeners (+10 / -10 per klik)
+local function stopSpectate()
+    isSpectating = false
+    spectateTarget = nil
+    specBtn.Text = "SPECTATE"
+    specBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+    specBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChildOfClass("Humanoid") then
+        workspace.CurrentCamera.CameraSubject = char:FindFirstChildOfClass("Humanoid")
+    end
+end
+
+local function toggleSpectate()
+    if isSpectating then
+        stopSpectate()
+    else
+        local target = findPlayer(targetInput.Text)
+        local otherPlayers = getOtherPlayers()
+
+        if target then
+            for i, p in ipairs(otherPlayers) do
+                if p == target then
+                    currentSpecIndex = i
+                    break
+                end
+            end
+            setSpectateTarget(target)
+        elseif #otherPlayers > 0 then
+            if currentSpecIndex > #otherPlayers then currentSpecIndex = 1 end
+            setSpectateTarget(otherPlayers[currentSpecIndex])
+        end
+    end
+end
+
+local function cycleSpectate(direction)
+    local otherPlayers = getOtherPlayers()
+    if #otherPlayers == 0 then return end
+
+    if not isSpectating then
+        currentSpecIndex = 1
+    else
+        currentSpecIndex = currentSpecIndex + direction
+        if currentSpecIndex > #otherPlayers then
+            currentSpecIndex = 1
+        elseif currentSpecIndex < 1 then
+            currentSpecIndex = #otherPlayers
+        end
+    end
+
+    setSpectateTarget(otherPlayers[currentSpecIndex])
+end
+
+RunService.RenderStepped:Connect(function()
+    if isSpectating then
+        if spectateTarget and spectateTarget.Parent and spectateTarget.Character and spectateTarget.Character:FindFirstChildOfClass("Humanoid") then
+            workspace.CurrentCamera.CameraSubject = spectateTarget.Character:FindFirstChildOfClass("Humanoid")
+        else
+            stopSpectate()
+        end
+    end
+end)
+
+-- Teleport System
+local function teleportToTarget()
+    local target = findPlayer(targetInput.Text) or spectateTarget
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        local myChar = getCharacter()
+        local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+        if myHRP then
+            myHRP.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+        end
+    end
+end
+
+---------------------------------------------------------
+-- ESP CORE FUNCTIONS
+---------------------------------------------------------
+local function applyESP(player)
+    if player == LocalPlayer then return end
+
+    local function createHighlight(char)
+        if not char then return end
+        local old = char:FindFirstChild("TenshinESP")
+        if old then old:Destroy() end
+
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "TenshinESP"
+        highlight.Adornee = char
+        highlight.FillColor = Color3.fromRGB(255, 60, 60)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.OutlineTransparency = 0
+        highlight.Parent = char
+    end
+
+    if player.Character then
+        createHighlight(player.Character)
+    end
+
+    espConnections[player] = player.CharacterAdded:Connect(function(char)
+        if isESP then
+            task.wait(0.2)
+            createHighlight(char)
+        end
+    end)
+end
+
+local function removeESP(player)
+    if espConnections[player] then
+        espConnections[player]:Disconnect()
+        espConnections[player] = nil
+    end
+    if player.Character then
+        local hl = player.Character:FindFirstChild("TenshinESP")
+        if hl then hl:Destroy() end
+    end
+end
+
+local function toggleESP(state)
+    isESP = state
+    if isESP then
+        espBtn.Text = "ESP PLAYER : ON"
+        espBtn.BackgroundColor3 = Color3.fromRGB(45, 110, 240)
+        espBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+        for _, p in ipairs(Players:GetPlayers()) do
+            applyESP(p)
+        end
+    else
+        espBtn.Text = "ESP PLAYER : OFF"
+        espBtn.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
+        espBtn.TextColor3 = Color3.fromRGB(180, 185, 200)
+
+        for _, p in ipairs(Players:GetPlayers()) do
+            removeESP(p)
+        end
+    end
+end
+
+-- ESP Listener for new players joining/leaving
+Players.PlayerAdded:Connect(function(p)
+    if isESP then
+        applyESP(p)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(p)
+    removeESP(p)
+end)
+
+-- Button Listeners
 wsMinus.MouseButton1Click:Connect(function() applyWalkSpeed(walkSpeed - 10) end)
 wsPlus.MouseButton1Click:Connect(function() applyWalkSpeed(walkSpeed + 10) end)
 
@@ -375,19 +609,25 @@ flyInput.FocusLost:Connect(function()
 end)
 
 flyToggleBtn.MouseButton1Click:Connect(function() toggleFly(not isFlying) end)
-invisToggleBtn.MouseButton1Click:Connect(function() toggleInvis(not isInvis) end)
+specBtn.MouseButton1Click:Connect(toggleSpectate)
+prevBtn.MouseButton1Click:Connect(function() cycleSpectate(-1) end)
+nextBtn.MouseButton1Click:Connect(function() cycleSpectate(1) end)
+tpBtn.MouseButton1Click:Connect(teleportToTarget)
+espBtn.MouseButton1Click:Connect(function() toggleESP(not isESP) end)
 
 -- Minimize & Close
 local isMinimized = false
 MinBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     Container.Visible = not isMinimized
-    MainFrame.Size = isMinimized and UDim2.new(0, 250, 0, 38) or UDim2.new(0, 250, 0, 165)
+    MainFrame.Size = isMinimized and UDim2.new(0, 250, 0, 38) or UDim2.new(0, 250, 0, 240)
 end)
 
 CloseBtn.MouseButton1Click:Connect(function()
     if speedConnection then speedConnection:Disconnect() end
     if isFlying then toggleFly(false) end
+    if isSpectating then stopSpectate() end
+    if isESP then toggleESP(false) end
     ScreenGui:Destroy()
 end)
 
@@ -396,4 +636,5 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     applyWalkSpeed(walkSpeed)
     if isFlying then toggleFly(false) end
+    if isSpectating then stopSpectate() end
 end)
